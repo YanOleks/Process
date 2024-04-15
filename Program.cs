@@ -14,6 +14,11 @@ namespace Process
         #region Technical
         enum Register { R1, R2 };
         static List<String[]> buffer = [];
+        static Dictionary<String, Register> registerDict = new() {
+            { "R1", Register.R1 },
+            { "R2", Register.R2 }
+
+        };
         #endregion
 
         #region Registers
@@ -28,12 +33,30 @@ namespace Process
 
         static void Main(string[] args)
         {
-            STP(Register.R1, 10, 14);
-            Point point = GetPositions(Register.R1);
-            Console.Write($"{point.X} {point.Y}");
+            ReadCommandFile(FileLocation);
+            Console.WriteLine();
+            Execute();
             
         }
         #region Technical Commands
+        static void PrintAll(String[] command)
+        {
+            var com = String.Join(" ", command);
+            Console.WriteLine("Command: " + com);
+            int i = 1;
+            foreach(var reg in registers)
+            {
+                Console.Write($"R{i}: ");
+                i++;
+                PrintBinaryArray(reg);
+                Console.WriteLine();
+            }
+            var sign = PS ? "1" : "0";
+            Console.WriteLine($"PS: {sign}");
+            Console.WriteLine($"PC: {PC}");
+            Console.WriteLine($"TC: {TC}");
+            Console.WriteLine();
+        }
         static void PrintBinaryArray(IEnumerable<bool> array)
         {
             foreach(var i in array)
@@ -66,15 +89,10 @@ namespace Process
                     line = sr.ReadLine();                    
                 }
                 sr.Close();
-                Console.ReadLine();
             }
             catch (Exception e)
             {
                 Console.WriteLine("Exception: " + e.Message);
-            }
-            finally
-            {
-                Console.WriteLine("Executing finally block.");
             }
         }
         static String[] ReadCommand(string command)
@@ -127,7 +145,68 @@ namespace Process
         }
         static void Execute()
         {
-#warning Not implemented
+            foreach (var command in buffer)
+            {
+                PC++;
+                TC++;
+                PrintAll(command);
+                if (!registerDict.ContainsKey(command[1]))
+                {
+                    Console.WriteLine("First operand must be register");
+                }
+                var writeIn = registerDict[command[1]];
+
+                int secondOperand;
+                if (int.TryParse(command[2], out secondOperand))
+                {
+                    switch (command[0])
+                    {
+                        case "MOV":
+                            MOV(writeIn, secondOperand);
+                            break;
+                        case "STP":
+                            if(command.Length == 4) { 
+                                STP(writeIn, secondOperand, int.Parse(command[3]));
+                            }else
+                            {
+                                Console.WriteLine("No valid arguments");
+                            }
+                            break;
+                        case "SWP":
+                            SWP(writeIn, secondOperand);
+                            break;
+
+                        default:
+                            Console.WriteLine("Command was not found");
+                            break;
+
+                    }
+                }
+                else if (registerDict.ContainsKey(command[2])) {
+                    Register register = registerDict[command[2]];
+                    switch (command[0])
+                    {
+                        case "MOV":
+                            MOV(writeIn, register);
+                            break;
+                        case "STP":
+                            Console.WriteLine("No valid arguments");
+                            break;
+                        case "SWP":
+                            SWP(writeIn, register);
+                            break;
+
+                        default:
+                            Console.WriteLine("Command was not found");
+                            break;
+
+                    }
+                }
+                TC++;
+                PS = registers[(int)writeIn][0];
+                PrintAll(command);
+                TC = 0;
+            }
         }
         #endregion
 

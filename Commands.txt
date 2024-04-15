@@ -1,3 +1,2 @@
-test test
-test
-test test test
+MOV R1 -14
+MOV R2 15
