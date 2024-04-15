@@ -79,17 +79,18 @@ namespace Process
         {
             return command.Split(' ');
         }
-        static List<bool> ToBinary(int value)
+        static BitArray ToBinary(int value)
         {
             List<bool> result = [];
-            while(value > 0)
+            int a = Math.Abs(value);
+            while(a > 0)
             {
-                result.Add(value % 2 == 1);
-                value /= 2;
+                result.Add(a % 2 == 1);
+                a /= 2;
             }
-            result.Reverse();
-            return result;
-        }
+            result.Reverse();    
+            return new BitArray(result.ToArray());
+        }         
         static void Execute()
         {
 #warning Not implemented
@@ -104,6 +105,18 @@ namespace Process
             for(int i = 1; i <= array.Count; i++)
             {
                 registers[(int)writeInto][^i] = array[^i];
+            }
+            if (value < 0)
+            {
+                registers[(int)writeInto].Not();
+                bool k = true;
+                int i = 1;
+                while(k && i <= 26)
+                {
+                    registers[(int)writeInto][^i] ^= k;
+                    i++;
+                    if (registers[(int)writeInto][^i]) k = false;
+                }            
             }
         }
         static void MOV(Register writeInto, Register writeOut)
