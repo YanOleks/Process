@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Drawing;
 using System.IO;
 
 namespace Process
@@ -27,8 +28,9 @@ namespace Process
 
         static void Main(string[] args)
         {
-            MOV(Register.R1, -13);
-            PrintBinaryArray(registers[(int)Register.R1]);
+            STP(Register.R1, 10, 14);
+            Point point = GetPositions(Register.R1);
+            Console.Write($"{point.X} {point.Y}");
             
         }
         #region Technical Commands
@@ -91,6 +93,38 @@ namespace Process
             result.Reverse();    
             return result;
         }         
+        static Point GetPositions(Register register)
+        {
+            int pos = getIntFromBitArray(registers[(int)register]);
+            return GetPositions(pos);
+        }
+        static Point GetPositions(int pos)
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(pos, 2626);
+            int x, y;
+            y = pos % 100;
+            pos /= 100;
+            x = pos;
+
+            return new Point(x, y);
+        }
+        static int getIntFromBitArray(BitArray bitArray)
+        {
+            int value = 0;
+            //start of number 
+            int j = 0;
+
+            for (int i = 1; i <= bitArray.Count; i++)
+            {                
+                if (bitArray[^i])
+                {
+                    value += Convert.ToInt32(Math.Pow(2, j));
+                }
+                j++;
+            }
+
+            return value;
+        }
         static void Execute()
         {
 #warning Not implemented
@@ -129,8 +163,7 @@ namespace Process
             if (x > Size || y > Size || x < 1 || y < 1) 
                 throw new ArgumentOutOfRangeException($"Positions must be between 1 and {Size}");
             if (y < 10) x *= 10;
-            var pos = ToBinary(x);
-            pos.AddRange(ToBinary(y));
+            var pos = ToBinary(x * 100 + y);
                         
             for (int i = 1; i <= pos.Count; i++)
             {
@@ -140,11 +173,13 @@ namespace Process
         //swap Bits
         static void SWP(Register writeInto, Register pos)
         {
-#warning Not implemented
+            SWP(writeInto, getIntFromBitArray(registers[(int)pos]));
         }
         static void SWP(Register writeInto, int pos)
         {
-#warning Not implemented
+            var itemsPos = GetPositions(pos);
+            (registers[(int)writeInto][itemsPos.Y], registers[(int)writeInto][itemsPos.X]) = 
+                (registers[(int)writeInto][itemsPos.X], registers[(int)writeInto][itemsPos.Y]);
         }
 
         #endregion
