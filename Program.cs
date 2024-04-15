@@ -27,7 +27,7 @@ namespace Process
 
         static void Main(string[] args)
         {
-            MOV(Register.R1, 13);
+            MOV(Register.R1, -13);
             PrintBinaryArray(registers[(int)Register.R1]);
             
         }
@@ -110,7 +110,30 @@ namespace Process
         {
             registers[(int)writeInto] = registers[(int)writeOut];
         }
-        
+        //set position of bits in register
+        static void STP(Register writeInto, int x, int y)
+        {            
+            if (x > Size || y > Size || x < 1 || y < 1) 
+                throw new ArgumentOutOfRangeException($"Positions must be between 1 and {Size}");
+            if (y < 10) x *= 10;
+            var pos = ToBinary(x);
+            pos.AddRange(ToBinary(y));
+                        
+            for (int i = 1; i <= pos.Count; i++)
+            {
+                registers[(int)writeInto][^i] = pos[^i];
+            }
+        }
+        //swap Bits
+        static void SWP(Register writeInto, Register pos)
+        {
+#warning Not implemented
+        }
+        static void SWP(Register writeInto, int pos)
+        {
+#warning Not implemented
+        }
+
         #endregion
     }
 }
