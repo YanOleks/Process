@@ -79,7 +79,7 @@ namespace Process
         {
             return command.Split(' ');
         }
-        static BitArray ToBinary(int value)
+        static List<bool> ToBinary(int value)
         {
             List<bool> result = [];
             int a = Math.Abs(value);
@@ -89,7 +89,7 @@ namespace Process
                 a /= 2;
             }
             result.Reverse();    
-            return new BitArray(result.ToArray());
+            return result;
         }         
         static void Execute()
         {
