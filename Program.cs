@@ -12,17 +12,18 @@ namespace Process
         #endregion
 
         #region Technical
-        enum Register { R1, R2 };
+        enum Register { R1, R2, R3};
         static List<String[]> buffer = [];
         static Dictionary<String, Register> registerDict = new() {
             { "R1", Register.R1 },
-            { "R2", Register.R2 }
-
+            { "R2", Register.R2 },
+            { "R3", Register.R3 }
         };
         #endregion
 
         #region Registers
         static BitArray[] registers = [
+            new(Size, false),
             new(Size, false),
             new(Size, false),
         ];      
@@ -51,7 +52,7 @@ namespace Process
                 PrintBinaryArray(reg);
                 Console.WriteLine();
             }
-            var sign = PS ? "1" : "0";
+            var sign = PS ? "-" : "+";
             Console.WriteLine($"PS: {sign}");
             Console.WriteLine($"PC: {PC}");
             Console.WriteLine($"TC: {TC}");
@@ -113,12 +114,12 @@ namespace Process
         }         
         static Point GetPositions(Register register)
         {
-            int pos = getIntFromBitArray(registers[(int)register]);
+            int pos = GetIntFromBitArray(registers[(int)register]);
             return GetPositions(pos);
         }
         static Point GetPositions(int pos)
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(pos, 2626);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(pos, Size);
             int x, y;
             y = pos % 100;
             pos /= 100;
@@ -126,8 +127,20 @@ namespace Process
 
             return new Point(x, y);
         }
-        static int getIntFromBitArray(BitArray bitArray)
+        static int GetIntFromBitArray(BitArray bitArray)
         {
+            if (bitArray[0] == true)
+            {
+                bitArray = bitArray.Not();
+                bool k = true;
+                int i = 1;
+                while (k && i <= Size)
+                {
+                    bitArray[^i] ^= k;
+                    if (bitArray[^i]) k = false;
+                    i++;
+                }
+            }
             int value = 0;
             //start of number 
             int j = 0;
@@ -150,55 +163,136 @@ namespace Process
                 PC++;
                 TC++;
                 PrintAll(command);
+#warning Remove Comment
+                //Console.Readline();
                 if (!registerDict.ContainsKey(command[1]))
                 {
                     Console.WriteLine("First operand must be register");
+                    return;
                 }
                 var writeIn = registerDict[command[1]];
 
-                int secondOperand;
-                if (int.TryParse(command[2], out secondOperand))
+                if (int.TryParse(command[2], out int secondOperand))
                 {
                     switch (command[0])
                     {
                         case "MOV":
+                            if (command.Length != 3)
+                            {
+                                Console.WriteLine("Invalid arguments");
+                                return;
+                            }
                             MOV(writeIn, secondOperand);
                             break;
                         case "STP":
-                            if(command.Length == 4) { 
-                                STP(writeIn, secondOperand, int.Parse(command[3]));
-                            }else
+                            if (command.Length == 4)
                             {
-                                Console.WriteLine("No valid arguments");
+                                if (int.TryParse(command[3], out int thirdOperand))
+                                {
+                                    STP(writeIn, secondOperand, thirdOperand);
+                                }
+                                else if (registerDict.TryGetValue(command[3], out Register value))
+                                {
+                                    STP(writeIn, secondOperand, value);
+                                }
+                                else { Console.WriteLine("Invalid arguments"); return; }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid arguments");
+                                return;
                             }
                             break;
                         case "SWP":
-                            SWP(writeIn, secondOperand);
+
+                            if (command.Length == 4)
+                            {
+                                if (int.TryParse(command[3], out int thirdOperand))
+                                {
+                                    SWP(writeIn, secondOperand, thirdOperand);
+                                }
+                                else if (registerDict.TryGetValue(command[3], out Register value))
+                                {
+                                    SWP(writeIn, secondOperand, value);
+                                }
+                                else { Console.WriteLine("Invalid arguments"); return; }
+                            }
+                            else if (command.Length == 3)
+                            {
+                                SWP(writeIn, secondOperand);
+                            }
+                            else
+                            {
+                                Console.WriteLine("No valid arguments");
+                                return;
+                            }
                             break;
 
                         default:
                             Console.WriteLine("Command was not found");
-                            break;
+                            return;
 
                     }
                 }
-                else if (registerDict.ContainsKey(command[2])) {
-                    Register register = registerDict[command[2]];
+                else if (registerDict.TryGetValue(command[2], out Register value))
+                {
+                    Register register = value;
                     switch (command[0])
                     {
                         case "MOV":
+                            if (command.Length != 3)
+                            {
+                                Console.WriteLine("Invalid arguments");
+                                return;
+                            }
                             MOV(writeIn, register);
                             break;
                         case "STP":
-                            Console.WriteLine("No valid arguments");
+                            if (command.Length == 4)
+                            {
+                                if (int.TryParse(command[3], out int thirdOperand))
+                                {
+                                    STP(writeIn, register, thirdOperand);
+                                }
+                                else if (registerDict.TryGetValue(command[3], out Register reg))
+                                {
+                                    STP(writeIn, register, reg);
+                                }
+                                else { Console.WriteLine("Invalid arguments"); return; }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid arguments");
+                                return;
+                            }
                             break;
                         case "SWP":
-                            SWP(writeIn, register);
+                            if (command.Length == 4)
+                            {
+                                if (int.TryParse(command[3], out int thirdOperand))
+                                {
+                                    SWP(writeIn, register, thirdOperand);
+                                }
+                                else if (registerDict.TryGetValue(command[3], out Register reg))
+                                {
+                                    SWP(writeIn, register, reg);
+                                }
+                                else { Console.WriteLine("Invalid arguments"); return; }
+                            }
+                            else if (command.Length == 3)
+                            {
+                                SWP(writeIn, register);
+                            }
+                            else
+                            {
+                                Console.WriteLine("No valid arguments");
+                                return;
+                            }
                             break;
 
                         default:
                             Console.WriteLine("Command was not found");
-                            break;
+                            return;
 
                     }
                 }
@@ -206,6 +300,9 @@ namespace Process
                 PS = registers[(int)writeIn][0];
                 PrintAll(command);
                 TC = 0;
+
+#warning Remove comment
+                //Console.ReadLine();
             }
         }
         #endregion
@@ -221,14 +318,14 @@ namespace Process
             }
             if (value < 0)
             {
-                registers[(int)writeInto].Not();
+                registers[(int)writeInto] = registers[(int)writeInto].Not();
                 bool k = true;
                 int i = 1;
-                while(k && i <= 26)
+                while(k && i <= Size)
                 {
                     registers[(int)writeInto][^i] ^= k;
-                    i++;
                     if (registers[(int)writeInto][^i]) k = false;
+                    i++;                    
                 }            
             }
         }
@@ -249,16 +346,98 @@ namespace Process
                 registers[(int)writeInto][^i] = pos[^i];
             }
         }
+        static void STP(Register writeInto, int x, Register pos2)
+        {
+            int y = GetIntFromBitArray (registers[(int)pos2]);
+            if (x > Size || y > Size || x < 1 || y < 1)
+                throw new ArgumentOutOfRangeException($"Positions must be between 1 and {Size}");
+            if (y < 10) x *= 10;
+            var pos = ToBinary(x * 100 + y);
+
+            for (int i = 1; i <= pos.Count; i++)
+            {
+                registers[(int)writeInto][^i] = pos[^i];
+            }
+        }
+        static void STP(Register writeInto, Register pos1, int y)
+        {
+            int x = GetIntFromBitArray(registers[(int)pos1]);
+            if (x > Size || y > Size || x < 1 || y < 1)
+                throw new ArgumentOutOfRangeException($"Positions must be between 1 and {Size}");
+            if (y < 10) x *= 10;
+            var pos = ToBinary(x * 100 + y);
+
+            for (int i = 1; i <= pos.Count; i++)
+            {
+                registers[(int)writeInto][^i] = pos[^i];
+            }
+        }
+        static void STP(Register writeInto, Register x, Register y)
+        {
+            SWP(writeInto, GetIntFromBitArray(registers[(int)x]), GetIntFromBitArray(registers[(int)y]));
+        }
         //swap Bits
         static void SWP(Register writeInto, Register pos)
         {
-            SWP(writeInto, getIntFromBitArray(registers[(int)pos]));
+            SWP(writeInto, GetIntFromBitArray(registers[(int)pos]));
         }
         static void SWP(Register writeInto, int pos)
         {
+            if (pos < 0)
+            {
+                Console.WriteLine("Negative operands");
+                return;
+            }
             var itemsPos = GetPositions(pos);
             (registers[(int)writeInto][itemsPos.Y], registers[(int)writeInto][itemsPos.X]) = 
                 (registers[(int)writeInto][itemsPos.X], registers[(int)writeInto][itemsPos.Y]);
+        }
+        static void SWP(Register writeInto, int x, int y) {
+            if (x < 0 || y < 0 ||
+                x > Size || y > Size)
+            {
+                Console.WriteLine("Negative operands");
+                return;
+            }
+            (registers[(int)writeInto][x], registers[(int)writeInto][y]) =
+                (registers[(int)writeInto][y], registers[(int)writeInto][x]);
+        }
+        static void SWP(Register writeInto, int x, Register pos2)
+        {
+            int y = GetIntFromBitArray(registers[(int)pos2]);
+            if (x < 0 || y < 0 ||
+                x > Size || y > Size)
+            {
+                Console.WriteLine("Negative operands");
+                return;
+            }
+            (registers[(int)writeInto][x], registers[(int)writeInto][y]) =
+                (registers[(int)writeInto][y], registers[(int)writeInto][x]);
+        }
+        static void SWP(Register writeInto, Register pos1, int y)
+        {
+            int x = GetIntFromBitArray(registers[(int)pos1]);
+            if (x < 0 || y < 0 ||
+                x > Size || y > Size)
+            {
+                Console.WriteLine("Negative operands");
+                return;
+            }
+            (registers[(int)writeInto][x], registers[(int)writeInto][y]) =
+                (registers[(int)writeInto][y], registers[(int)writeInto][x]);
+        }
+        static void SWP(Register writeInto, Register pos1, Register pos2)
+        {
+            int x = GetIntFromBitArray(registers[(int)pos1]);
+            int y = GetIntFromBitArray(registers[(int)pos2]);
+            if (x < 0 || y < 0 ||
+                x > Size || y > Size)
+            {
+                Console.WriteLine("Negative operands");
+                return;
+            }
+            (registers[(int)writeInto][x], registers[(int)writeInto][y]) =
+                (registers[(int)writeInto][y], registers[(int)writeInto][x]);
         }
 
         #endregion
